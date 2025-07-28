@@ -1,0 +1,46 @@
+import requests
+from bs4 import BeautifulSoup
+import csv
+
+def fetch_html(url):
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    response = requests.get(url, headers=headers)
+    response.raise_for_status()
+    return response.text
+
+def parse_products(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    products = []
+    product_cards = soup.select('.product') 
+    for card in product_cards:
+        name = card.select_one('.product-title')
+        price = card.select_one('.product-price')
+        rating = card.select_one('.product-rating')
+        products.append({
+            'name': name.get_text(strip=True) if name else '',
+            'price': price.get_text(strip=True) if price else '',
+            'rating': rating.get_text(strip=True) if rating else ''
+        })
+    return products
+
+def save_to_csv(products, filename):
+    keys = ['name', 'price', 'rating']
+    with open(filename, 'w', newline='', encoding='utf-8') as f:
+        writer = csv.DictWriter(f, fieldnames=keys)
+        writer.writeheader()
+        writer.writerows(products)
+
+def main():
+    url = input("Enter the URL of the e-commerce product listing page: ")
+    html = fetch_html(url)
+    products = parse_products(html)
+    if products:
+        save_to_csv(products, 'products.csv')
+        print(f"Saved {len(products)} products to products.csv")
+    else:
+        print("No products found. Try adjusting the CSS selectors in the script.")
+
+if __name__ == "__main__":
+    main()
